@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/d-kuro/gwq/internal/utils"
+	"github.com/komapotter/gwq/internal/utils"
 )
 
 // RepositoryInfo contains parsed repository information.

@@ -6,12 +6,12 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/d-kuro/gwq/internal/command"
-	"github.com/d-kuro/gwq/internal/filesystem"
-	"github.com/d-kuro/gwq/internal/template"
-	"github.com/d-kuro/gwq/internal/url"
-	"github.com/d-kuro/gwq/internal/utils"
-	"github.com/d-kuro/gwq/pkg/models"
+	"github.com/komapotter/gwq/internal/command"
+	"github.com/komapotter/gwq/internal/filesystem"
+	"github.com/komapotter/gwq/internal/template"
+	"github.com/komapotter/gwq/internal/url"
+	"github.com/komapotter/gwq/internal/utils"
+	"github.com/komapotter/gwq/pkg/models"
 )
 
 // runPostWorktreeSetup runs file copy and setup commands for the new worktree.

@@ -6,8 +6,8 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/d-kuro/gwq/internal/git"
-	"github.com/d-kuro/gwq/internal/registry"
+	"github.com/komapotter/gwq/internal/git"
+	"github.com/komapotter/gwq/internal/registry"
 	"github.com/spf13/cobra"
 )
 

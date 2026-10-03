@@ -6,12 +6,12 @@ import (
 	"os"
 	"time"
 
-	"github.com/d-kuro/gwq/internal/config"
-	"github.com/d-kuro/gwq/internal/table"
-	"github.com/d-kuro/gwq/internal/tmux"
-	"github.com/d-kuro/gwq/internal/ui"
-	"github.com/d-kuro/gwq/internal/utils"
-	"github.com/d-kuro/gwq/pkg/models"
+	"github.com/komapotter/gwq/internal/config"
+	"github.com/komapotter/gwq/internal/table"
+	"github.com/komapotter/gwq/internal/tmux"
+	"github.com/komapotter/gwq/internal/ui"
+	"github.com/komapotter/gwq/internal/utils"
+	"github.com/komapotter/gwq/pkg/models"
 	"github.com/spf13/cobra"
 )
 

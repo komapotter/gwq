@@ -6,8 +6,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/d-kuro/gwq/internal/duration"
-	"github.com/d-kuro/gwq/internal/registry"
+	"github.com/komapotter/gwq/internal/duration"
+	"github.com/komapotter/gwq/internal/registry"
 	"github.com/spf13/cobra"
 )
 

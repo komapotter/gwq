@@ -4,7 +4,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/d-kuro/gwq/pkg/models"
+	"github.com/komapotter/gwq/pkg/models"
 )
 
 // sortStatuses sorts worktree statuses based on the specified field.

@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/d-kuro/gwq/internal/git"
-	"github.com/d-kuro/gwq/internal/registry"
-	"github.com/d-kuro/gwq/internal/worktree"
+	"github.com/komapotter/gwq/internal/git"
+	"github.com/komapotter/gwq/internal/registry"
+	"github.com/komapotter/gwq/internal/worktree"
 	"github.com/spf13/cobra"
 )
 

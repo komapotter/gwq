@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"github.com/d-kuro/gwq/internal/shell"
+	"github.com/komapotter/gwq/internal/shell"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )

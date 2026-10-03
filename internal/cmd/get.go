@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/d-kuro/gwq/internal/config"
-	"github.com/d-kuro/gwq/internal/discovery"
-	"github.com/d-kuro/gwq/internal/git"
-	"github.com/d-kuro/gwq/internal/worktree"
-	"github.com/d-kuro/gwq/pkg/models"
+	"github.com/komapotter/gwq/internal/config"
+	"github.com/komapotter/gwq/internal/discovery"
+	"github.com/komapotter/gwq/internal/git"
+	"github.com/komapotter/gwq/internal/worktree"
+	"github.com/komapotter/gwq/pkg/models"
 	"github.com/spf13/cobra"
 )
 

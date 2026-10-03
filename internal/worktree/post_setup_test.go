@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/d-kuro/gwq/pkg/models"
+	"github.com/komapotter/gwq/pkg/models"
 )
 
 // recordingExecutor records every Execute call so we can assert the exact

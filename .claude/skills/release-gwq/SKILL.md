@@ -109,7 +109,8 @@ Description of the feature.
 **Go:**
 
 \`\`\`bash
-go install github.com/d-kuro/gwq/cmd/gwq@<version>
+go install github.com/komapotter/gwq/cmd/gwq@<version>
+go install github.com/komapotter/gwq/cmd/gwq@latest
 \`\`\`
 
 **Full Changelog**: https://github.com/komapotter/gwq/compare/<prev-version>...<version>

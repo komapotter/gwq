@@ -1,6 +1,6 @@
 # Variables
 BINARY_NAME := gwq
-PACKAGE := github.com/d-kuro/gwq
+PACKAGE := github.com/komapotter/gwq
 VERSION := $(shell git describe --tags --always --dirty)
 LDFLAGS := -s -w -X main.version=$(VERSION)
 GO_FILES := $(shell find . -name '*.go' -type f -not -path './vendor/*')

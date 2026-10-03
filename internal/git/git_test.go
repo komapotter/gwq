@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/d-kuro/gwq/pkg/models"
+	"github.com/komapotter/gwq/pkg/models"
 )
 
 // TestRepository creates a test git repository

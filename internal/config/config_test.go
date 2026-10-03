@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/d-kuro/gwq/pkg/models"
+	"github.com/komapotter/gwq/pkg/models"
 	"github.com/spf13/viper"
 )
 

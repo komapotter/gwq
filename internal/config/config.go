@@ -8,8 +8,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/d-kuro/gwq/internal/utils"
-	"github.com/d-kuro/gwq/pkg/models"
+	"github.com/komapotter/gwq/internal/utils"
+	"github.com/komapotter/gwq/pkg/models"
 	"github.com/spf13/viper"
 )
 

@@ -9,8 +9,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/d-kuro/gwq/internal/git"
-	"github.com/d-kuro/gwq/pkg/models"
+	"github.com/komapotter/gwq/internal/git"
+	"github.com/komapotter/gwq/pkg/models"
 )
 
 // StatusCollectorOptions contains optional parameters for StatusCollector.

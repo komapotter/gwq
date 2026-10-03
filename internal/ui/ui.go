@@ -7,9 +7,9 @@ import (
 	"os"
 	"time"
 
-	"github.com/d-kuro/gwq/internal/table"
-	"github.com/d-kuro/gwq/internal/utils"
-	"github.com/d-kuro/gwq/pkg/models"
+	"github.com/komapotter/gwq/internal/table"
+	"github.com/komapotter/gwq/internal/utils"
+	"github.com/komapotter/gwq/pkg/models"
 )
 
 // Printer handles output formatting.

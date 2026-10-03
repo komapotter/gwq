@@ -10,7 +10,7 @@ import (
 	"strings"
 
 	"github.com/bmatcuk/doublestar/v4"
-	"github.com/d-kuro/gwq/internal/filesystem"
+	"github.com/komapotter/gwq/internal/filesystem"
 )
 
 // CopyFilesWithGlob copies files from srcRoot to dstRoot, supporting glob patterns and preserving directory structure.

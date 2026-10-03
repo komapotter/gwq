@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/d-kuro/gwq/internal/git"
-	"github.com/d-kuro/gwq/internal/url"
+	"github.com/komapotter/gwq/internal/git"
+	"github.com/komapotter/gwq/internal/url"
 )
 
 // TestRepository creates a test git repository (copy from git package for testing)

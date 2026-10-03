@@ -36,22 +36,26 @@ Since each worktree has its own working directory with isolated files, AI agents
 
 ## Installation
 
-### Homebrew (macOS/Linux)
-
-```bash
-brew install d-kuro/tap/gwq
-```
-
 ### Using Go
 
+`go install` uses this fork's module path (`github.com/komapotter/gwq`) plus a Git tag created on **this repository**, not upstream `d-kuro/gwq` and not the GoReleaser archive assets. Pushing that tag also runs the goreleaser workflow, which publishes a GitHub Release here.
+
+This fork has no release tags yet. After you create a tag such as `vX.Y.Z` on `komapotter/gwq` (not on upstream), install that version with:
+
 ```bash
-go install github.com/d-kuro/gwq/cmd/gwq@latest
+go install github.com/komapotter/gwq/cmd/gwq@vX.Y.Z
+```
+
+To install the latest tagged release on this fork (once a tag exists):
+
+```bash
+go install github.com/komapotter/gwq/cmd/gwq@latest
 ```
 
 ### From Source
 
 ```bash
-git clone https://github.com/d-kuro/gwq.git
+git clone https://github.com/komapotter/gwq.git
 cd gwq
 go build -o gwq ./cmd/gwq
 ```

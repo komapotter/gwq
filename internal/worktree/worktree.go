@@ -7,10 +7,10 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/d-kuro/gwq/internal/template"
-	"github.com/d-kuro/gwq/internal/url"
-	"github.com/d-kuro/gwq/internal/utils"
-	"github.com/d-kuro/gwq/pkg/models"
+	"github.com/komapotter/gwq/internal/template"
+	"github.com/komapotter/gwq/internal/url"
+	"github.com/komapotter/gwq/internal/utils"
+	"github.com/komapotter/gwq/pkg/models"
 )
 
 // GitInterface defines the git operations used by Manager.

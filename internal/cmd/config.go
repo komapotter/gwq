@@ -3,8 +3,8 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/d-kuro/gwq/internal/config"
-	"github.com/d-kuro/gwq/internal/ui"
+	"github.com/komapotter/gwq/internal/config"
+	"github.com/komapotter/gwq/internal/ui"
 	"github.com/spf13/cobra"
 )
 

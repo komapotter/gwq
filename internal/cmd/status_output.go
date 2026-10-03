@@ -8,9 +8,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/d-kuro/gwq/internal/table"
-	"github.com/d-kuro/gwq/internal/ui"
-	"github.com/d-kuro/gwq/pkg/models"
+	"github.com/komapotter/gwq/internal/table"
+	"github.com/komapotter/gwq/internal/ui"
+	"github.com/komapotter/gwq/pkg/models"
 )
 
 // outputJSON outputs worktree statuses in JSON format.

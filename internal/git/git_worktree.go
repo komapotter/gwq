@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/d-kuro/gwq/pkg/models"
+	"github.com/komapotter/gwq/pkg/models"
 )
 
 // ListWorktrees returns a list of all worktrees in the repository.
