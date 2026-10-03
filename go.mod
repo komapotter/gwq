@@ -1,4 +1,4 @@
-module github.com/d-kuro/gwq
+module github.com/komapotter/gwq
 
 go 1.27.0
 

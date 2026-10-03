@@ -5,9 +5,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/d-kuro/gwq/internal/git"
-	"github.com/d-kuro/gwq/internal/tmux"
-	"github.com/d-kuro/gwq/pkg/models"
+	"github.com/komapotter/gwq/internal/git"
+	"github.com/komapotter/gwq/internal/tmux"
+	"github.com/komapotter/gwq/pkg/models"
 )
 
 func TestNew(t *testing.T) {

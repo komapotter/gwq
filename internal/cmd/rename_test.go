@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/d-kuro/gwq/internal/worktree"
+	"github.com/komapotter/gwq/internal/worktree"
 )
 
 func TestHandleRenamePost(t *testing.T) {

@@ -10,10 +10,10 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/d-kuro/gwq/internal/git"
-	"github.com/d-kuro/gwq/internal/url"
-	"github.com/d-kuro/gwq/internal/utils"
-	"github.com/d-kuro/gwq/pkg/models"
+	"github.com/komapotter/gwq/internal/git"
+	"github.com/komapotter/gwq/internal/url"
+	"github.com/komapotter/gwq/internal/utils"
+	"github.com/komapotter/gwq/pkg/models"
 )
 
 // GlobalWorktreeEntry represents a discovered worktree.

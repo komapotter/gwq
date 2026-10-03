@@ -4,7 +4,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/d-kuro/gwq/internal/url"
+	"github.com/komapotter/gwq/internal/url"
 )
 
 func TestProcessor_GeneratePath(t *testing.T) {

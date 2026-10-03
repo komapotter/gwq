@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/d-kuro/gwq/internal/config"
-	"github.com/d-kuro/gwq/internal/finder"
-	"github.com/d-kuro/gwq/internal/tmux"
-	"github.com/d-kuro/gwq/pkg/models"
+	"github.com/komapotter/gwq/internal/config"
+	"github.com/komapotter/gwq/internal/finder"
+	"github.com/komapotter/gwq/internal/tmux"
+	"github.com/komapotter/gwq/pkg/models"
 	"github.com/spf13/cobra"
 )
 

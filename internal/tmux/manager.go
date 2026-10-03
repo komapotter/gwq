@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/d-kuro/gwq/internal/utils"
+	"github.com/komapotter/gwq/internal/utils"
 )
 
 type SessionManager struct {

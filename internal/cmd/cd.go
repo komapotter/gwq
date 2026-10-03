@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/d-kuro/gwq/internal/config"
+	"github.com/komapotter/gwq/internal/config"
 	"github.com/spf13/cobra"
 )
 

@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/d-kuro/gwq/pkg/models"
+	"github.com/komapotter/gwq/pkg/models"
 )
 
 // GetRepositoryName returns the name of the repository.

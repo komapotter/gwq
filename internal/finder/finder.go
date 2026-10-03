@@ -6,10 +6,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/d-kuro/gwq/internal/git"
-	"github.com/d-kuro/gwq/internal/tmux"
-	"github.com/d-kuro/gwq/internal/utils"
-	"github.com/d-kuro/gwq/pkg/models"
+	"github.com/komapotter/gwq/internal/git"
+	"github.com/komapotter/gwq/internal/tmux"
+	"github.com/komapotter/gwq/internal/utils"
+	"github.com/komapotter/gwq/pkg/models"
 	"github.com/ktr0731/go-fuzzyfinder"
 )
 

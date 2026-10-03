@@ -8,8 +8,8 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/d-kuro/gwq/internal/url"
-	"github.com/d-kuro/gwq/internal/utils"
+	"github.com/komapotter/gwq/internal/url"
+	"github.com/komapotter/gwq/internal/utils"
 )
 
 // TemplateData contains the data available for template processing.

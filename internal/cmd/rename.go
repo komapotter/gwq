@@ -8,9 +8,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/d-kuro/gwq/internal/registry"
-	"github.com/d-kuro/gwq/internal/worktree"
-	"github.com/d-kuro/gwq/pkg/models"
+	"github.com/komapotter/gwq/internal/registry"
+	"github.com/komapotter/gwq/internal/worktree"
+	"github.com/komapotter/gwq/pkg/models"
 	"github.com/spf13/cobra"
 )
 
