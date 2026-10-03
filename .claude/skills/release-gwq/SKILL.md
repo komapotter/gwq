@@ -10,7 +10,7 @@ Automate the gwq release process. Takes a version argument (e.g., `/release-gwq 
 ## Prerequisites
 
 - `gh` CLI installed and authenticated
-- Write access to `d-kuro/gwq`
+- Write access to `komapotter/gwq`
 
 ## Release Flow
 
@@ -64,7 +64,7 @@ Exclude the maintainer and bots:
 ```bash
 gh pr list --state merged --search "merged:>$SINCE" \
   --json number,title,author \
-  --jq '.[] | select(.author.login != "d-kuro" and (.author.login | test("\\[bot\\]$") | not)) | "- @\(.author.login) (#\(.number))"'
+  --jq '.[] | select(.author.login != "komapotter" and (.author.login | test("\\[bot\\]$") | not)) | "- @\(.author.login) (#\(.number))"'
 ```
 
 If no external contributors, omit the Contributors section from the release notes.
@@ -104,11 +104,7 @@ Description of the feature.
 
 ## 📦 Upgrade Instructions
 
-**Homebrew:**
-
-\`\`\`bash
-brew upgrade d-kuro/tap/gwq
-\`\`\`
+**GitHub Release:** download the archive for your OS from https://github.com/komapotter/gwq/releases
 
 **Go:**
 
@@ -116,7 +112,7 @@ brew upgrade d-kuro/tap/gwq
 go install github.com/d-kuro/gwq/cmd/gwq@<version>
 \`\`\`
 
-**Full Changelog**: https://github.com/d-kuro/gwq/compare/<prev-version>...<version>
+**Full Changelog**: https://github.com/komapotter/gwq/compare/<prev-version>...<version>
 ```
 
 After writing, show the draft to the user and ask for edits before proceeding.
@@ -157,7 +153,7 @@ git push origin <version>
 
 Tell the user: "Tag pushed. The GitHub Actions goreleaser workflow will automatically build and publish the release."
 
-Provide a link to monitor: `https://github.com/d-kuro/gwq/actions/workflows/goreleaser.yaml`
+Provide a link to monitor: `https://github.com/komapotter/gwq/actions/workflows/goreleaser.yaml`
 
 #### Step 8 — Monitor workflow and sync notes
 
@@ -182,13 +178,7 @@ gh release edit <version> --notes-file docs/release-notes/<version>.md
 gh release view <version>
 ```
 
-Tell the user the release is complete and provide install instructions:
-
-```
-brew install d-kuro/tap/gwq
-# or
-brew upgrade d-kuro/tap/gwq
-```
+Tell the user the release is complete and provide install instructions from https://github.com/komapotter/gwq/releases. Do not publish a Homebrew formula.
 
 ## Phase Detection
 
