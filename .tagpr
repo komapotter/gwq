@@ -1,0 +1,8 @@
+[tagpr]
+	releaseBranch = main
+	versionFile = -
+	calendarVersioning = false
+	fixedMajorVersion = 0
+	changelog = true
+	release = false
+	vPrefix = true
