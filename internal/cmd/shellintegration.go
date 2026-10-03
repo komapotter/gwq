@@ -12,8 +12,8 @@ var completionCmd = &cobra.Command{
 	Long: `Generate shell completion scripts with optional shell integration.
 
 When cd.launch_shell is set to false in your config, this also generates
-a shell wrapper function that enables 'gwq cd' to change directory
-in the current shell without launching a new shell.
+a shell wrapper function that enables 'gwq cd', 'gwq add', and 'gwq rename'
+to change directory in the current shell without launching a new shell.
 
   # bash (~/.bashrc)
   source <(gwq completion bash)

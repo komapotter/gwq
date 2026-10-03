@@ -731,6 +731,148 @@ func TestListWorktrees_IsMain(t *testing.T) {
 	}
 }
 
+func TestListWorktrees_DetachedAndLocked(t *testing.T) {
+	repo := NewTestRepository(t)
+	g := New(repo.Path)
+
+	detachedPath := filepath.Join(t.TempDir(), "detached-wt")
+	if err := repo.run("worktree", "add", "--detach", detachedPath); err != nil {
+		t.Fatalf("failed to add detached worktree: %v", err)
+	}
+
+	lockedPath := repo.CreateWorktreeWithNewBranch(t, filepath.Join(t.TempDir(), "locked-wt"))
+	if err := repo.run("worktree", "lock", lockedPath); err != nil {
+		t.Fatalf("failed to lock worktree: %v", err)
+	}
+
+	worktrees, err := g.ListWorktrees()
+	if err != nil {
+		t.Fatalf("ListWorktrees() error = %v", err)
+	}
+
+	var foundDetached, foundLocked bool
+	for _, wt := range worktrees {
+		resolvedWt, _ := filepath.EvalSymlinks(wt.Path)
+		resolvedDetached, _ := filepath.EvalSymlinks(detachedPath)
+		resolvedLocked, _ := filepath.EvalSymlinks(lockedPath)
+		if resolvedWt == resolvedDetached {
+			foundDetached = true
+			if !wt.Detached {
+				t.Error("detached worktree Detached = false, want true")
+			}
+		}
+		if resolvedWt == resolvedLocked {
+			foundLocked = true
+			if !wt.Locked {
+				t.Error("locked worktree Locked = false, want true")
+			}
+		}
+	}
+	if !foundDetached {
+		t.Error("detached worktree not found")
+	}
+	if !foundLocked {
+		t.Error("locked worktree not found")
+	}
+}
+
+func TestRenameBranch(t *testing.T) {
+	repo := NewTestRepository(t)
+	g := New(repo.Path)
+
+	repo.CreateBranch(t, "old-name")
+	if err := repo.run("checkout", "main"); err != nil {
+		t.Fatalf("checkout main: %v", err)
+	}
+
+	if err := g.RenameBranch("old-name", "new-name"); err != nil {
+		t.Fatalf("RenameBranch() error = %v", err)
+	}
+
+	exists, err := g.BranchExists("new-name")
+	if err != nil {
+		t.Fatalf("BranchExists(new-name) error = %v", err)
+	}
+	if !exists {
+		t.Error("renamed branch should exist")
+	}
+
+	exists, err = g.BranchExists("old-name")
+	if err != nil {
+		t.Fatalf("BranchExists(old-name) error = %v", err)
+	}
+	if exists {
+		t.Error("old branch name should not exist")
+	}
+}
+
+func TestMoveWorktree(t *testing.T) {
+	repo := NewTestRepository(t)
+	g := New(repo.Path)
+
+	root := t.TempDir()
+	oldPath := repo.CreateWorktreeWithNewBranch(t, filepath.Join(root, "old-wt"))
+	newPath := filepath.Join(root, "moved-wt")
+
+	if err := g.MoveWorktree(oldPath, newPath); err != nil {
+		t.Fatalf("MoveWorktree() error = %v", err)
+	}
+
+	if _, err := os.Stat(newPath); err != nil {
+		t.Errorf("moved worktree missing at %s: %v", newPath, err)
+	}
+	if _, err := os.Stat(oldPath); !os.IsNotExist(err) {
+		t.Errorf("old worktree path still exists: %v", err)
+	}
+
+	if !containsWorktreeWithPath(mustListWorktrees(t, g), newPath) {
+		t.Error("moved worktree not listed at new path")
+	}
+}
+
+func TestHasPopulatedSubmodules_NoGitmodules(t *testing.T) {
+	repo := NewTestRepository(t)
+	g := New(repo.Path)
+
+	has, err := g.HasPopulatedSubmodules(repo.Path)
+	if err != nil {
+		t.Fatalf("HasPopulatedSubmodules() error = %v", err)
+	}
+	if has {
+		t.Error("repository without .gitmodules should not report submodules")
+	}
+}
+
+func TestBranchExists(t *testing.T) {
+	repo := NewTestRepository(t)
+	g := New(repo.Path)
+
+	exists, err := g.BranchExists("main")
+	if err != nil {
+		t.Fatalf("BranchExists(main) error = %v", err)
+	}
+	if !exists {
+		t.Error("main should exist")
+	}
+
+	exists, err = g.BranchExists("does-not-exist")
+	if err != nil {
+		t.Fatalf("BranchExists(does-not-exist) error = %v", err)
+	}
+	if exists {
+		t.Error("missing branch should not exist")
+	}
+}
+
+func mustListWorktrees(t *testing.T, g *Git) []models.Worktree {
+	t.Helper()
+	worktrees, err := g.ListWorktrees()
+	if err != nil {
+		t.Fatalf("ListWorktrees() error = %v", err)
+	}
+	return worktrees
+}
+
 // Helper function to compare worktrees with path resolution
 func containsWorktreeWithPath(worktrees []models.Worktree, path string) bool {
 	resolvedPath, _ := filepath.EvalSymlinks(path)

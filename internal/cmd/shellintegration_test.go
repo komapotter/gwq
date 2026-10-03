@@ -216,22 +216,22 @@ func TestCompletion_LaunchShellFalse_WrapsAdd(t *testing.T) {
 		fallback string // alternative substring acceptable (e.g., fish syntax)
 	}{
 		{
-			name:   "bash dispatches cd|add via __gwq_shim_cd",
+			name:   "bash dispatches cd|add|rename via __gwq_shim_cd",
 			shell:  "bash",
 			cmd:    completionBashCmd,
-			needle: "cd|add)",
+			needle: "cd|add|rename)",
 		},
 		{
-			name:   "zsh dispatches cd|add via __gwq_shim_cd",
+			name:   "zsh dispatches cd|add|rename via __gwq_shim_cd",
 			shell:  "zsh",
 			cmd:    completionZshCmd,
-			needle: "cd|add)",
+			needle: "cd|add|rename)",
 		},
 		{
-			name:     "fish dispatches cd add via switch",
+			name:     "fish dispatches cd add rename via switch",
 			shell:    "fish",
 			cmd:      completionFishCmd,
-			needle:   "case cd add",
+			needle:   "case cd add rename",
 			fallback: "__gwq_shim_cd",
 		},
 	}
@@ -256,7 +256,7 @@ func TestCompletion_LaunchShellFalse_WrapsAdd(t *testing.T) {
 				t.Errorf("%s wrapper should define __gwq_shim_cd helper", tt.shell)
 			}
 			if !strings.Contains(output, tt.needle) && (tt.fallback == "" || !strings.Contains(output, tt.fallback)) {
-				t.Errorf("%s wrapper should dispatch both cd and add (looking for %q or %q)", tt.shell, tt.needle, tt.fallback)
+				t.Errorf("%s wrapper should dispatch cd, add, and rename (looking for %q or %q)", tt.shell, tt.needle, tt.fallback)
 			}
 		})
 	}
