@@ -3,6 +3,7 @@ package git
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -24,6 +25,7 @@ func (g *Git) ListWorktrees() ([]models.Worktree, error) {
 			path := after
 
 			var branch, commitHash string
+			var locked, detached bool
 
 			for j := i + 1; j < len(lines) && !strings.HasPrefix(lines[j], "worktree "); j++ {
 				if after, ok := strings.CutPrefix(lines[j], "branch "); ok {
@@ -32,11 +34,19 @@ func (g *Git) ListWorktrees() ([]models.Worktree, error) {
 					branch = strings.TrimPrefix(branch, "refs/heads/")
 				} else if after, ok := strings.CutPrefix(lines[j], "HEAD "); ok {
 					commitHash = after
+				} else if strings.HasPrefix(lines[j], "locked") {
+					locked = true
+				} else if lines[j] == "detached" {
+					detached = true
 				}
 				i = j
 			}
 
-			if branch == "" {
+			if detached {
+				if branch == "" {
+					branch = "HEAD"
+				}
+			} else if branch == "" {
 				branch = g.getCurrentBranch(path)
 			}
 
@@ -50,6 +60,8 @@ func (g *Git) ListWorktrees() ([]models.Worktree, error) {
 				Path:       path,
 				Branch:     branch,
 				CommitHash: commitHash,
+				Locked:     locked,
+				Detached:   detached,
 				CreatedAt:  createdAt,
 			})
 		}
@@ -116,4 +128,44 @@ func (g *Git) PruneWorktrees() error {
 		return fmt.Errorf("failed to prune worktrees: %w", err)
 	}
 	return nil
+}
+
+// MoveWorktree moves a worktree directory to a new path.
+func (g *Git) MoveWorktree(oldPath, newPath string) error {
+	if _, err := g.run("worktree", "move", oldPath, newPath); err != nil {
+		return fmt.Errorf("failed to move worktree from %s to %s: %w", oldPath, newPath, err)
+	}
+	return nil
+}
+
+// HasPopulatedSubmodules reports whether the worktree at path has initialized
+// submodules. git worktree move rejects these.
+func (g *Git) HasPopulatedSubmodules(path string) (bool, error) {
+	if _, err := os.Stat(filepath.Join(path, ".gitmodules")); err != nil {
+		if os.IsNotExist(err) {
+			return false, nil
+		}
+		return false, fmt.Errorf("failed to check .gitmodules: %w", err)
+	}
+
+	oldWorkDir := g.workDir
+	g.workDir = path
+	defer func() { g.workDir = oldWorkDir }()
+
+	output, err := g.run("submodule", "status", "--recursive")
+	if err != nil {
+		return false, fmt.Errorf("failed to check submodules: %w", err)
+	}
+
+	for line := range strings.SplitSeq(strings.TrimSpace(output), "\n") {
+		if line == "" {
+			continue
+		}
+		// '-' prefix means the submodule is not initialized.
+		if !strings.HasPrefix(line, "-") {
+			return true, nil
+		}
+	}
+
+	return false, nil
 }

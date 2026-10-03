@@ -174,3 +174,106 @@ func TestWorktreeEntry_ExpiresAt_JSONMarshal(t *testing.T) {
 		t.Error("expires_at should be present when set")
 	}
 }
+
+func TestRegistry_UpdatePathAndBranch_PreservesExpiresAt(t *testing.T) {
+	tmpDir := t.TempDir()
+	registryPath := filepath.Join(tmpDir, "registry.json")
+	expiresAt := time.Date(2030, 1, 2, 3, 4, 5, 0, time.UTC)
+	registeredAt := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+
+	r := &Registry{
+		entries: map[string]*WorktreeEntry{
+			"/old/path": {
+				Repository:   "https://github.com/test/repo",
+				Branch:       "feature/old",
+				Path:         "/old/path",
+				RegisteredAt: registeredAt,
+				ExpiresAt:    &expiresAt,
+			},
+		},
+		path: registryPath,
+	}
+
+	if err := r.UpdatePathAndBranch("/old/path", "/new/path", "feature/new"); err != nil {
+		t.Fatalf("UpdatePathAndBranch() error = %v", err)
+	}
+
+	if _, ok := r.Get("/old/path"); ok {
+		t.Error("old path should be removed from registry")
+	}
+
+	got, ok := r.Get("/new/path")
+	if !ok {
+		t.Fatal("new path should be registered")
+	}
+	if got.Branch != "feature/new" {
+		t.Errorf("Branch = %s, want feature/new", got.Branch)
+	}
+	if got.Path != "/new/path" {
+		t.Errorf("Path = %s, want /new/path", got.Path)
+	}
+	if got.ExpiresAt == nil || !got.ExpiresAt.Equal(expiresAt) {
+		t.Errorf("ExpiresAt = %v, want %v", got.ExpiresAt, expiresAt)
+	}
+	if !got.RegisteredAt.Equal(registeredAt) {
+		t.Errorf("RegisteredAt = %v, want %v", got.RegisteredAt, registeredAt)
+	}
+
+	// Reload from disk to confirm persistence.
+	reloaded := &Registry{entries: make(map[string]*WorktreeEntry), path: registryPath}
+	if err := reloaded.load(); err != nil {
+		t.Fatalf("load() error = %v", err)
+	}
+	got, ok = reloaded.Get("/new/path")
+	if !ok {
+		t.Fatal("reloaded registry missing new path")
+	}
+	if got.Branch != "feature/new" {
+		t.Errorf("reloaded Branch = %s, want feature/new", got.Branch)
+	}
+	if got.ExpiresAt == nil || !got.ExpiresAt.Equal(expiresAt) {
+		t.Errorf("reloaded ExpiresAt = %v, want %v", got.ExpiresAt, expiresAt)
+	}
+}
+
+func TestRegistry_UpdatePathAndBranch_MissingIsNoop(t *testing.T) {
+	r := &Registry{
+		entries: make(map[string]*WorktreeEntry),
+		path:    filepath.Join(t.TempDir(), "registry.json"),
+	}
+
+	if err := r.UpdatePathAndBranch("/missing", "/new", "branch"); err != nil {
+		t.Fatalf("UpdatePathAndBranch() error = %v", err)
+	}
+	if len(r.entries) != 0 {
+		t.Errorf("entries = %d, want 0", len(r.entries))
+	}
+}
+
+func TestRegistry_UpdatePathAndBranch_SamePathUpdatesBranch(t *testing.T) {
+	expiresAt := time.Now().Add(time.Hour)
+	r := &Registry{
+		entries: map[string]*WorktreeEntry{
+			"/same/path": {
+				Branch:    "old",
+				Path:      "/same/path",
+				ExpiresAt: &expiresAt,
+			},
+		},
+		path: filepath.Join(t.TempDir(), "registry.json"),
+	}
+
+	if err := r.UpdatePathAndBranch("/same/path", "/same/path", "new"); err != nil {
+		t.Fatalf("UpdatePathAndBranch() error = %v", err)
+	}
+	got, ok := r.Get("/same/path")
+	if !ok {
+		t.Fatal("entry missing after same-path update")
+	}
+	if got.Branch != "new" {
+		t.Errorf("Branch = %s, want new", got.Branch)
+	}
+	if got.ExpiresAt == nil || !got.ExpiresAt.Equal(expiresAt) {
+		t.Errorf("ExpiresAt = %v, want %v", got.ExpiresAt, expiresAt)
+	}
+}

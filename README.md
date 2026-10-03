@@ -76,6 +76,9 @@ gwq exec feature -- npm test
 
 # Remove a worktree
 gwq remove feature/old-ui
+
+# Rename a worktree branch and its directory
+gwq rename feature/old-ui feature/new-ui
 ```
 
 ## Features
@@ -198,6 +201,34 @@ gwq remove --dry-run feature/old
 
 **Flags**: `-f` (force), `-b` (delete branch), `--force-delete-branch`, `-g` (global), `--dry-run`
 
+### `gwq rename`
+
+Rename a worktree's git branch and move its directory together. The new path is generated with the same `naming.template` / `sanitize_chars` rules as `gwq add` (including a per-repository `basedir`). A worktree created at a custom path is moved onto the template path unless `--path` is set.
+
+```bash
+# Rename by branch or path pattern
+gwq rename feature/old feature/new
+
+# Interactive: fuzzy-find the worktree, then prompt for the new name
+gwq rename
+
+# Preview the new branch and path
+gwq rename --dry-run feature/old feature/new
+
+# Override the destination directory while still renaming the branch
+gwq rename --path ~/work/custom feature/old feature/new
+```
+
+**Flags**: `--dry-run` (`-d`), `--path`
+
+The target is resolved like `gwq remove` (branch or path). Multiple matches are an error.
+
+Refused with a clear error and no mutation: the main worktree, detached HEAD, a locked worktree, a worktree with populated submodules, a destination that already exists, or a branch name that already exists.
+
+Out of scope: the remote branch is not renamed or pushed, `setup_commands` / `copy_files` are not re-run, and existing tmux sessions keep their old working directory.
+
+> **Note**: With shell integration, if the current directory is inside the renamed worktree, the wrapper cds to the new path.
+
 ### `gwq status`
 
 Monitor the status of all worktrees.
@@ -243,6 +274,8 @@ gwq tmux attach dev-server
 gwq tmux kill dev-server
 ```
 
+> **Note**: `gwq rename` does not update existing tmux sessions. A session started in a worktree keeps its old working directory after the worktree is moved. Attach and `cd` to the new path, or start a new session.
+
 ### `gwq config`
 
 Manage configuration.
@@ -281,7 +314,7 @@ gwq prune
 
 ## Shell Integration
 
-The completion scripts provide both tab completion and shell integration for `gwq cd` and `gwq add`. When `cd.launch_shell` is set to `false`, the completion script includes a shell wrapper that allows these commands to change the directory in the current shell without launching a new shell. For `gwq add`, this applies to `-s`/`--stay` and to every successful add when `cd.auto_cd_on_add = true`. PowerShell is currently not supported for shell integration.
+The completion scripts provide both tab completion and shell integration for `gwq cd`, `gwq add`, and `gwq rename`. When `cd.launch_shell` is set to `false`, the completion script includes a shell wrapper that allows these commands to change the directory in the current shell without launching a new shell. For `gwq add`, this applies to `-s`/`--stay` and to every successful add when `cd.auto_cd_on_add = true`. For `gwq rename`, the wrapper cds only when the current directory is inside the worktree that moved. PowerShell is currently not supported for shell integration.
 
 ### Tab Completion
 

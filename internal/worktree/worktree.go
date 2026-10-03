@@ -19,7 +19,11 @@ type GitInterface interface {
 	AddWorktree(path, branch string, createBranch bool) error
 	AddWorktreeFromBase(path, branch, baseBranch string) error
 	RemoveWorktree(path string, force bool) error
+	MoveWorktree(oldPath, newPath string) error
 	DeleteBranch(branch string, force bool) error
+	RenameBranch(oldName, newName string) error
+	BranchExists(branch string) (bool, error)
+	HasPopulatedSubmodules(path string) (bool, error)
 	PruneWorktrees() error
 	GetRepositoryName() (string, error)
 	GetRecentCommits(path string, limit int) ([]models.CommitInfo, error)
@@ -100,6 +104,100 @@ func (m *Manager) List() ([]models.Worktree, error) {
 	return m.git.ListWorktrees()
 }
 
+// RenamePlan is the computed outcome of a worktree rename before mutation.
+type RenamePlan struct {
+	OldBranch string
+	NewBranch string
+	OldPath   string
+	NewPath   string
+}
+
+// PlanRename validates a rename and computes the destination path using the
+// same naming rules as Add. It does not mutate git state or the filesystem.
+func (m *Manager) PlanRename(wt models.Worktree, newBranch, customPath string) (*RenamePlan, error) {
+	newBranch = strings.TrimSpace(newBranch)
+	if newBranch == "" {
+		return nil, fmt.Errorf("new branch name is required")
+	}
+	if wt.IsMain {
+		return nil, fmt.Errorf("cannot rename the main worktree")
+	}
+	if wt.Detached || wt.Branch == "" || wt.Branch == "HEAD" {
+		return nil, fmt.Errorf("cannot rename a detached HEAD worktree")
+	}
+	if wt.Locked {
+		return nil, fmt.Errorf("cannot rename a locked worktree")
+	}
+	if newBranch == wt.Branch {
+		return nil, fmt.Errorf("branch already exists: %s", newBranch)
+	}
+
+	exists, err := m.git.BranchExists(newBranch)
+	if err != nil {
+		return nil, err
+	}
+	if exists {
+		return nil, fmt.Errorf("branch already exists: %s", newBranch)
+	}
+
+	hasSubs, err := m.git.HasPopulatedSubmodules(wt.Path)
+	if err != nil {
+		return nil, err
+	}
+	if hasSubs {
+		return nil, fmt.Errorf("cannot rename a worktree that contains submodules")
+	}
+
+	newPath, err := m.resolveWorktreePath(customPath, newBranch)
+	if err != nil {
+		return nil, err
+	}
+
+	if !sameWorktreePath(wt.Path, newPath) {
+		if err := m.validateDestination(newPath); err != nil {
+			return nil, err
+		}
+	}
+
+	return &RenamePlan{
+		OldBranch: wt.Branch,
+		NewBranch: newBranch,
+		OldPath:   wt.Path,
+		NewPath:   newPath,
+	}, nil
+}
+
+// Rename applies a previously computed rename plan: git branch -m, then
+// git worktree move. If the move fails, the branch is renamed back.
+func (m *Manager) Rename(plan *RenamePlan) error {
+	if plan == nil {
+		return fmt.Errorf("rename plan is required")
+	}
+
+	if !sameWorktreePath(plan.OldPath, plan.NewPath) && m.config.Worktree.AutoMkdir {
+		if err := os.MkdirAll(filepath.Dir(plan.NewPath), 0755); err != nil {
+			return fmt.Errorf("failed to create directory: %w", err)
+		}
+	}
+
+	if err := m.git.RenameBranch(plan.OldBranch, plan.NewBranch); err != nil {
+		return err
+	}
+
+	if sameWorktreePath(plan.OldPath, plan.NewPath) {
+		return nil
+	}
+
+	if err := m.git.MoveWorktree(plan.OldPath, plan.NewPath); err != nil {
+		if rbErr := m.git.RenameBranch(plan.NewBranch, plan.OldBranch); rbErr != nil {
+			return fmt.Errorf("failed to move worktree: %w (and failed to restore branch name %q: %v)", err, plan.OldBranch, rbErr)
+		}
+		return fmt.Errorf("failed to move worktree: %w", err)
+	}
+
+	return nil
+}
+
 // Prune removes worktree information for deleted directories.
 func (m *Manager) Prune() error {
 	return m.git.PruneWorktrees()
@@ -166,6 +264,23 @@ func (m *Manager) ValidateWorktreePath(path string) error {
 
 // preparePath resolves and prepares the worktree path, creating parent directories if needed.
 func (m *Manager) preparePath(customPath, branch string) (string, error) {
+	path, err := m.resolveWorktreePath(customPath, branch)
+	if err != nil {
+		return "", err
+	}
+
+	if m.config.Worktree.AutoMkdir {
+		dir := filepath.Dir(path)
+		if err := os.MkdirAll(dir, 0755); err != nil {
+			return "", fmt.Errorf("failed to create directory: %w", err)
+		}
+	}
+
+	return path, nil
+}
+
+// resolveWorktreePath generates or expands a worktree path without creating directories.
+func (m *Manager) resolveWorktreePath(customPath, branch string) (string, error) {
 	path := customPath
 	if path == "" {
 		generatedPath, err := m.generateWorktreePath(branch)
@@ -179,16 +294,20 @@ func (m *Manager) preparePath(customPath, branch string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("failed to expand path: %w", err)
 	}
-	path = expandedPath
+	return expandedPath, nil
+}
 
-	if m.config.Worktree.AutoMkdir {
-		dir := filepath.Dir(path)
-		if err := os.MkdirAll(dir, 0755); err != nil {
-			return "", fmt.Errorf("failed to create directory: %w", err)
-		}
+func (m *Manager) validateDestination(path string) error {
+	if _, err := os.Stat(path); err == nil {
+		return fmt.Errorf("destination path already exists: %s", path)
+	} else if !os.IsNotExist(err) {
+		return fmt.Errorf("failed to check destination path: %w", err)
 	}
+	return nil
+}
 
-	return path, nil
+func sameWorktreePath(a, b string) bool {
+	return filepath.Clean(a) == filepath.Clean(b)
 }
 
 // generateWorktreePath generates a path for a new worktree using template configuration.

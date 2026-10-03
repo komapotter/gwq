@@ -63,6 +63,30 @@ func (g *Git) ListBranches(includeRemote bool) ([]models.Branch, error) {
 	return branches, nil
 }
 
+// RenameBranch renames a local branch. Git keeps upstream config under the new name.
+func (g *Git) RenameBranch(oldName, newName string) error {
+	if _, err := g.run("branch", "-m", oldName, newName); err != nil {
+		return fmt.Errorf("failed to rename branch %s to %s: %w", oldName, newName, err)
+	}
+	return nil
+}
+
+// BranchExists reports whether a local branch with the given name exists.
+func (g *Git) BranchExists(branch string) (bool, error) {
+	output, err := g.run("for-each-ref", "--format=%(refname:short)", "--", "refs/heads/"+branch)
+	if err != nil {
+		return false, fmt.Errorf("failed to check if branch %s exists: %w", branch, err)
+	}
+
+	for line := range strings.SplitSeq(strings.TrimSpace(output), "\n") {
+		if line == branch {
+			return true, nil
+		}
+	}
+
+	return false, nil
+}
+
 // DeleteBranch deletes a branch.
 func (g *Git) DeleteBranch(branch string, force bool) error {
 	args := []string{"branch"}

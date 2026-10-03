@@ -171,6 +171,27 @@ func (r *Registry) Get(path string) (*WorktreeEntry, bool) {
 	return entry, ok
 }
 
+// UpdatePathAndBranch updates a registered worktree's path and branch, keeping
+// ExpiresAt and RegisteredAt. If no entry exists for oldPath, this is a no-op.
+func (r *Registry) UpdatePathAndBranch(oldPath, newPath, newBranch string) error {
+	r.mu.Lock()
+	entry, ok := r.entries[oldPath]
+	if !ok {
+		r.mu.Unlock()
+		return nil
+	}
+
+	if oldPath != newPath {
+		delete(r.entries, oldPath)
+	}
+	entry.Path = newPath
+	entry.Branch = newBranch
+	r.entries[newPath] = entry
+	r.mu.Unlock()
+
+	return r.save()
+}
+
 // ListExpired returns all worktrees that have expired.
 func (r *Registry) ListExpired() []*WorktreeEntry {
 	r.mu.RLock()

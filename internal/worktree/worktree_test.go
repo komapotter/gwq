@@ -12,18 +12,26 @@ import (
 
 // mockGit is a mock implementation of git operations for testing
 type mockGit struct {
-	worktrees         []models.Worktree
-	repoName          string
-	repoPath          string
-	repoURL           string
-	repoURLError      error
-	addError          error
-	removeError       error
-	listError         error
-	pruneError        error
-	deleteBranchError error
-	recentCommits     []models.CommitInfo
-	mainRepoPathError error
+	worktrees          []models.Worktree
+	repoName           string
+	repoPath           string
+	repoURL            string
+	repoURLError       error
+	addError           error
+	removeError        error
+	listError          error
+	pruneError         error
+	deleteBranchError  error
+	renameBranchError  error
+	moveWorktreeError  error
+	branchExistsError  error
+	hasSubmodulesError error
+	existingBranches   []string
+	hasSubmodules      bool
+	renamedBranches    [][2]string
+	movedWorktrees     [][2]string
+	recentCommits      []models.CommitInfo
+	mainRepoPathError  error
 }
 
 func (m *mockGit) ListWorktrees() ([]models.Worktree, error) {
@@ -109,6 +117,60 @@ func (m *mockGit) AddWorktreeFromBase(path, branch, baseBranch string) error {
 		Branch: branch,
 	})
 	return nil
+}
+
+func (m *mockGit) RenameBranch(oldName, newName string) error {
+	if m.renameBranchError != nil {
+		return m.renameBranchError
+	}
+	m.renamedBranches = append(m.renamedBranches, [2]string{oldName, newName})
+	for i := range m.worktrees {
+		if m.worktrees[i].Branch == oldName {
+			m.worktrees[i].Branch = newName
+		}
+	}
+	updated := make([]string, 0, len(m.existingBranches))
+	for _, b := range m.existingBranches {
+		if b == oldName {
+			updated = append(updated, newName)
+		} else {
+			updated = append(updated, b)
+		}
+	}
+	m.existingBranches = updated
+	return nil
+}
+
+func (m *mockGit) MoveWorktree(oldPath, newPath string) error {
+	if m.moveWorktreeError != nil {
+		return m.moveWorktreeError
+	}
+	m.movedWorktrees = append(m.movedWorktrees, [2]string{oldPath, newPath})
+	for i := range m.worktrees {
+		if m.worktrees[i].Path == oldPath {
+			m.worktrees[i].Path = newPath
+		}
+	}
+	return nil
+}
+
+func (m *mockGit) BranchExists(branch string) (bool, error) {
+	if m.branchExistsError != nil {
+		return false, m.branchExistsError
+	}
+	for _, b := range m.existingBranches {
+		if b == branch {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
+func (m *mockGit) HasPopulatedSubmodules(path string) (bool, error) {
+	if m.hasSubmodulesError != nil {
+		return false, m.hasSubmodulesError
+	}
+	return m.hasSubmodules, nil
 }
 
 func TestManagerAdd(t *testing.T) {
@@ -624,5 +686,373 @@ func TestManagerAdd_SetupFromWorktreeContext(t *testing.T) {
 	copied := filepath.Join(worktreeDir, "wt1", "copyme.txt")
 	if _, err := os.Stat(copied); err != nil {
 		t.Errorf("expected file to be copied from worktree context: %v", err)
+	}
+}
+
+func renameTestConfig(baseDir string) *models.Config {
+	return &models.Config{
+		Worktree: models.WorktreeConfig{
+			BaseDir:   baseDir,
+			AutoMkdir: true,
+		},
+		Naming: models.NamingConfig{
+			Template:      "{{.Host}}/{{.Owner}}/{{.Repository}}/{{.Branch}}",
+			SanitizeChars: map[string]string{"/": "-", ":": "-"},
+		},
+	}
+}
+
+func TestPlanRename_PathComputation(t *testing.T) {
+	baseDir := t.TempDir()
+	oldPath := filepath.Join(t.TempDir(), "custom-old")
+
+	tests := []struct {
+		name         string
+		wt           models.Worktree
+		newBranch    string
+		customPath   string
+		repoPath     string
+		repoSettings []models.RepositorySetting
+		wantSuffix   string
+		wantPath     string
+		wantErr      string
+	}{
+		{
+			name: "TemplateFromNewBranch",
+			wt: models.Worktree{
+				Path:   oldPath,
+				Branch: "feature/old",
+			},
+			newBranch:  "feature/new-ui",
+			wantSuffix: "github.com/test-user/test-repo/feature-new-ui",
+		},
+		{
+			name: "SanitizeSlashAndColon",
+			wt: models.Worktree{
+				Path:   oldPath,
+				Branch: "feature/old",
+			},
+			newBranch:  "feature/test:new",
+			wantSuffix: "github.com/test-user/test-repo/feature-test-new",
+		},
+		{
+			name: "CustomPathWorktreeMovesOntoTemplate",
+			wt: models.Worktree{
+				Path:   "/custom/created/path",
+				Branch: "feature/old",
+			},
+			newBranch:  "feature/renamed",
+			wantSuffix: "github.com/test-user/test-repo/feature-renamed",
+		},
+		{
+			name: "PathOverride",
+			wt: models.Worktree{
+				Path:   oldPath,
+				Branch: "feature/old",
+			},
+			newBranch:  "feature/new-ui",
+			customPath: filepath.Join(baseDir, "override-dir"),
+			wantPath:   filepath.Join(baseDir, "override-dir"),
+		},
+		{
+			name: "PerRepoBaseDir",
+			wt: models.Worktree{
+				Path:   oldPath,
+				Branch: "feature/old",
+			},
+			newBranch: "feature/new-ui",
+			repoPath:  "/mock/repo/path",
+			repoSettings: []models.RepositorySetting{
+				{Repository: "/mock/repo/path", BaseDir: "/per-repo-base"},
+			},
+			wantPath: "/per-repo-base/github.com/test-user/test-repo/feature-new-ui",
+		},
+		{
+			name: "RefuseMain",
+			wt: models.Worktree{
+				Path:   oldPath,
+				Branch: "main",
+				IsMain: true,
+			},
+			newBranch: "feature/new",
+			wantErr:   "cannot rename the main worktree",
+		},
+		{
+			name: "RefuseDetached",
+			wt: models.Worktree{
+				Path:     oldPath,
+				Branch:   "HEAD",
+				Detached: true,
+			},
+			newBranch: "feature/new",
+			wantErr:   "cannot rename a detached HEAD worktree",
+		},
+		{
+			name: "RefuseLocked",
+			wt: models.Worktree{
+				Path:   oldPath,
+				Branch: "feature/old",
+				Locked: true,
+			},
+			newBranch: "feature/new",
+			wantErr:   "cannot rename a locked worktree",
+		},
+		{
+			name: "RefuseExistingBranch",
+			wt: models.Worktree{
+				Path:   oldPath,
+				Branch: "feature/old",
+			},
+			newBranch: "already-taken",
+			wantErr:   "branch already exists",
+		},
+		{
+			name: "RefuseSameBranch",
+			wt: models.Worktree{
+				Path:   oldPath,
+				Branch: "feature/old",
+			},
+			newBranch: "feature/old",
+			wantErr:   "branch already exists",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cfg := renameTestConfig(baseDir)
+			cfg.RepositorySettings = tt.repoSettings
+			mockG := &mockGit{
+				repoPath:         tt.repoPath,
+				existingBranches: []string{"already-taken"},
+			}
+			m := New(mockG, cfg)
+
+			plan, err := m.PlanRename(tt.wt, tt.newBranch, tt.customPath)
+			if tt.wantErr != "" {
+				if err == nil {
+					t.Fatalf("PlanRename() expected error containing %q, got nil", tt.wantErr)
+				}
+				if !strings.Contains(err.Error(), tt.wantErr) {
+					t.Fatalf("PlanRename() error = %v, want containing %q", err, tt.wantErr)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("PlanRename() error = %v", err)
+			}
+
+			want := tt.wantPath
+			if want == "" {
+				want = filepath.Join(baseDir, tt.wantSuffix)
+			}
+			if plan.NewPath != want {
+				t.Errorf("PlanRename() NewPath = %s, want %s", plan.NewPath, want)
+			}
+			if plan.OldPath != tt.wt.Path {
+				t.Errorf("PlanRename() OldPath = %s, want %s", plan.OldPath, tt.wt.Path)
+			}
+			if plan.NewBranch != tt.newBranch {
+				t.Errorf("PlanRename() NewBranch = %s, want %s", plan.NewBranch, tt.newBranch)
+			}
+		})
+	}
+}
+
+func TestPlanRename_RefuseOccupiedDestination(t *testing.T) {
+	baseDir := t.TempDir()
+	dest := filepath.Join(baseDir, "occupied")
+	if err := os.MkdirAll(dest, 0755); err != nil {
+		t.Fatalf("mkdir: %v", err)
+	}
+
+	m := New(&mockGit{}, renameTestConfig(baseDir))
+	_, err := m.PlanRename(models.Worktree{
+		Path:   filepath.Join(t.TempDir(), "old"),
+		Branch: "feature/old",
+	}, "feature/new", dest)
+	if err == nil {
+		t.Fatal("PlanRename() expected occupied destination error")
+	}
+	if !strings.Contains(err.Error(), "destination path already exists") {
+		t.Errorf("PlanRename() error = %v, want occupied destination", err)
+	}
+}
+
+func TestPlanRename_RefuseSubmodules(t *testing.T) {
+	m := New(&mockGit{hasSubmodules: true}, renameTestConfig(t.TempDir()))
+	_, err := m.PlanRename(models.Worktree{
+		Path:   filepath.Join(t.TempDir(), "old"),
+		Branch: "feature/old",
+	}, "feature/new", "")
+	if err == nil {
+		t.Fatal("PlanRename() expected submodule error")
+	}
+	if !strings.Contains(err.Error(), "submodules") {
+		t.Errorf("PlanRename() error = %v, want submodules", err)
+	}
+}
+
+func TestPlanRename_DryRunDoesNotMutate(t *testing.T) {
+	baseDir := t.TempDir()
+	oldPath := filepath.Join(t.TempDir(), "old")
+	mockG := &mockGit{}
+	m := New(mockG, renameTestConfig(baseDir))
+
+	plan, err := m.PlanRename(models.Worktree{
+		Path:   oldPath,
+		Branch: "feature/old",
+	}, "feature/new", "")
+	if err != nil {
+		t.Fatalf("PlanRename() error = %v", err)
+	}
+	if plan.NewBranch != "feature/new" {
+		t.Errorf("NewBranch = %s, want feature/new", plan.NewBranch)
+	}
+	if len(mockG.renamedBranches) != 0 {
+		t.Errorf("PlanRename() renamed branches = %v, want none", mockG.renamedBranches)
+	}
+	if len(mockG.movedWorktrees) != 0 {
+		t.Errorf("PlanRename() moved worktrees = %v, want none", mockG.movedWorktrees)
+	}
+}
+
+func TestManagerRename(t *testing.T) {
+	baseDir := t.TempDir()
+	oldPath := filepath.Join(t.TempDir(), "old")
+	mockG := &mockGit{
+		worktrees: []models.Worktree{
+			{Path: oldPath, Branch: "feature/old"},
+		},
+		existingBranches: []string{"feature/old"},
+	}
+	m := New(mockG, renameTestConfig(baseDir))
+
+	plan, err := m.PlanRename(mockG.worktrees[0], "feature/new", "")
+	if err != nil {
+		t.Fatalf("PlanRename() error = %v", err)
+	}
+	if err := m.Rename(plan); err != nil {
+		t.Fatalf("Rename() error = %v", err)
+	}
+
+	if len(mockG.renamedBranches) != 1 || mockG.renamedBranches[0] != [2]string{"feature/old", "feature/new"} {
+		t.Errorf("renamedBranches = %v, want [[feature/old feature/new]]", mockG.renamedBranches)
+	}
+	if len(mockG.movedWorktrees) != 1 || mockG.movedWorktrees[0][0] != oldPath || mockG.movedWorktrees[0][1] != plan.NewPath {
+		t.Errorf("movedWorktrees = %v, want [[%s %s]]", mockG.movedWorktrees, oldPath, plan.NewPath)
+	}
+	if mockG.worktrees[0].Branch != "feature/new" {
+		t.Errorf("worktree branch = %s, want feature/new", mockG.worktrees[0].Branch)
+	}
+	if mockG.worktrees[0].Path != plan.NewPath {
+		t.Errorf("worktree path = %s, want %s", mockG.worktrees[0].Path, plan.NewPath)
+	}
+}
+
+func TestManagerRename_RollbackWhenMoveFails(t *testing.T) {
+	baseDir := t.TempDir()
+	oldPath := filepath.Join(t.TempDir(), "old")
+	mockG := &mockGit{
+		worktrees: []models.Worktree{
+			{Path: oldPath, Branch: "feature/old"},
+		},
+		existingBranches:  []string{"feature/old"},
+		moveWorktreeError: errors.New("move failed"),
+	}
+	m := New(mockG, renameTestConfig(baseDir))
+
+	plan, err := m.PlanRename(mockG.worktrees[0], "feature/new", "")
+	if err != nil {
+		t.Fatalf("PlanRename() error = %v", err)
+	}
+	err = m.Rename(plan)
+	if err == nil {
+		t.Fatal("Rename() expected move error")
+	}
+	if !strings.Contains(err.Error(), "failed to move worktree") {
+		t.Errorf("Rename() error = %v, want move failure", err)
+	}
+
+	if len(mockG.renamedBranches) != 2 {
+		t.Fatalf("renamedBranches = %v, want rename then rollback", mockG.renamedBranches)
+	}
+	if mockG.renamedBranches[0] != [2]string{"feature/old", "feature/new"} {
+		t.Errorf("first rename = %v, want [feature/old feature/new]", mockG.renamedBranches[0])
+	}
+	if mockG.renamedBranches[1] != [2]string{"feature/new", "feature/old"} {
+		t.Errorf("rollback rename = %v, want [feature/new feature/old]", mockG.renamedBranches[1])
+	}
+	if mockG.worktrees[0].Branch != "feature/old" {
+		t.Errorf("worktree branch after rollback = %s, want feature/old", mockG.worktrees[0].Branch)
+	}
+	if mockG.worktrees[0].Path != oldPath {
+		t.Errorf("worktree path after failed move = %s, want %s", mockG.worktrees[0].Path, oldPath)
+	}
+}
+
+func TestManagerRename_RollbackFailureIsReported(t *testing.T) {
+	baseDir := t.TempDir()
+	mockG := &mockGit{
+		worktrees: []models.Worktree{
+			{Path: filepath.Join(t.TempDir(), "old"), Branch: "feature/old"},
+		},
+		moveWorktreeError: errors.New("move failed"),
+	}
+	m := New(mockG, renameTestConfig(baseDir))
+
+	plan, err := m.PlanRename(mockG.worktrees[0], "feature/new", "")
+	if err != nil {
+		t.Fatalf("PlanRename() error = %v", err)
+	}
+
+	calls := 0
+	m.git = &renameFailOnSecond{mockGit: mockG, failOn: 2, calls: &calls}
+
+	err = m.Rename(plan)
+	if err == nil {
+		t.Fatal("Rename() expected combined error")
+	}
+	if !strings.Contains(err.Error(), "failed to restore branch name") {
+		t.Errorf("Rename() error = %v, want rollback failure", err)
+	}
+}
+
+type renameFailOnSecond struct {
+	*mockGit
+	failOn int
+	calls  *int
+}
+
+func (r *renameFailOnSecond) RenameBranch(oldName, newName string) error {
+	*r.calls++
+	if *r.calls == r.failOn {
+		return errors.New("rollback failed")
+	}
+	return r.mockGit.RenameBranch(oldName, newName)
+}
+
+func TestManagerRename_SamePathSkipsMove(t *testing.T) {
+	oldPath := filepath.Join(t.TempDir(), "same")
+	mockG := &mockGit{
+		worktrees: []models.Worktree{
+			{Path: oldPath, Branch: "feature/old"},
+		},
+	}
+	m := New(mockG, renameTestConfig(t.TempDir()))
+
+	plan := &RenamePlan{
+		OldBranch: "feature/old",
+		NewBranch: "feature/new",
+		OldPath:   oldPath,
+		NewPath:   oldPath,
+	}
+	if err := m.Rename(plan); err != nil {
+		t.Fatalf("Rename() error = %v", err)
+	}
+	if len(mockG.movedWorktrees) != 0 {
+		t.Errorf("movedWorktrees = %v, want none when paths match", mockG.movedWorktrees)
+	}
+	if len(mockG.renamedBranches) != 1 {
+		t.Errorf("renamedBranches = %v, want one branch rename", mockG.renamedBranches)
 	}
 }

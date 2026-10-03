@@ -1,6 +1,6 @@
 
 # gwq shell integration
-# Enables 'gwq cd' and 'gwq add' to change the current shell's directory.
+# Enables 'gwq cd', 'gwq add', and 'gwq rename' to change the current shell's directory.
 __gwq_shim_cd() {
     # Pass through help flags directly to the binary
     for __gwq_arg in "$@"; do
@@ -21,7 +21,7 @@ __gwq_shim_cd() {
 
 {{.CommandName}}() {
     case "$1" in
-        cd|add)
+        cd|add|rename)
             __gwq_shim_cd "$@"
             ;;
         *)
